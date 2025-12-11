@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galactic Conquest</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050b14;
+            --grid: #0d1b2a;
+            --text: #e0e1dd;
+            --player: #00f5d4;
+            --cpu: #ff0055;  
+            --asteroid: #9d4edd; 
+            --warn: #fee440;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            color: var(--text);
+            font-family: 'Exo 2', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 { 
+            color: var(--player); 
+            margin-bottom: 5px; 
+            font-family: 'Orbitron', sans-serif; 
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        p { margin-bottom: 25px; font-size: 0.9rem; color: #8892b0; letter-spacing: 1px; }
+
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2.5rem;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* BOARD */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 75px);
+            grid-template-rows: repeat(4, 75px);
+            gap: 12px;
+            background: rgba(13, 27, 42, 0.8);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #1b263b;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .cell {
+            background: #1b263b;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .cell:hover { background: #415a77; box-shadow: 0 0 10px var(--player); }
+        .cell.p1 { text-shadow: 0 0 10px var(--player); animation: popIn 0.3s; }
+        .cell.cpu { text-shadow: 0 0 10px var(--cpu); animation: popIn 0.3s; }
+        .cell.block { text-shadow: 0 0 10px var(--asteroid); }
+        
+        .cell.hazmat {
+            background: rgba(255, 0, 85, 0.15);
+            border: 1px dashed var(--cpu);
+            cursor: not-allowed;
+        }
+        .cell.hazmat::after {
+            content: '☢';
+            font-size: 0.8rem;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            color: var(--cpu);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* CONTROLS */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 280px;
+        }
+
+        .status {
+            background: rgba(13, 27, 42, 0.9);
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid var(--player);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .powers {
+            display: grid;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        /* Power Button Colors */
+        .btn-bomb { background: linear-gradient(45deg, #ff0055, #a4133c); color: #fff; }
+        .btn-override { background: linear-gradient(45deg, #7209b7, #3a0ca3); color: #fff; }
+        .btn-block { background: linear-gradient(45deg, #4361ee, #3f37c9); color: #fff; }
+        
+        .btn-help {
+            background: transparent;
+            border: 1px solid #415a77;
+            color: #778da9;
+            margin-top: 10px;
+        }
+        .btn-help:hover { border-color: var(--player); color: var(--player); }
+
+        .btn-reset { 
+            background: transparent; 
+            border: 1px solid var(--player); 
+            color: var(--player); 
+            margin-top: 5px; 
+            box-shadow: 0 0 10px rgba(0, 245, 212, 0.1);
+        }
+        .btn-reset:hover { background: rgba(0, 245, 212, 0.1); }
+
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(100%); }
+        .btn.active { box-shadow: 0 0 15px currentColor; border: 1px solid #fff; }
+
+        .log {
+            margin-top: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: #8892b0;
+            height: 120px;
+            overflow-y: auto;
+            border-top: 1px solid #1b263b;
+            padding-top: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        /* MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 11, 20, 0.95);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #0d1b2a;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid var(--player);
+            max-width: 500px;
+            width: 100%;
+            color: var(--text);
+            line-height: 1.6;
+            box-shadow: 0 0 30px rgba(0, 245, 212, 0.15);
+        }
+        .modal h2 { color: var(--player); margin-bottom: 15px; font-family: 'Orbitron', sans-serif; }
+        .modal ul { padding-left: 20px; margin-bottom: 25px; list-style-type: none; }
+        .modal li { margin-bottom: 12px; }
+        .close-btn {
+            background: var(--player); color: #050b14;
+            padding: 12px 20px; border: none; border-radius: 4px;
+            font-weight: bold; cursor: pointer; width: 100%;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 600px) {
+            .board { grid-template-columns: repeat(4, 60px); grid-template-rows: repeat(4, 60px); }
+            .cell { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>GALACTIC CONQUEST</h1>
+    <p>Secure Sector 4 • Align 4 Ships to Win</p>
+
+    <div class="game-container">
+        <div class="board" id="board">
+            <!-- Cells generated by JS -->
+        </div>
+
+        <div class="controls">
+            <div class="status" id="status">AWAITING COMMANDS...</div>
+
+            <div class="powers">
+                <button class="btn btn-bomb" id="btn-bomb" onclick="selectPower('BOMB')">💥 ORBITAL STRIKE</button>
+                <button class="btn btn-override" id="btn-override" onclick="selectPower('OVERRIDE')">👽 MIND CONTROL</button>
+                <button class="btn btn-block" id="btn-block" onclick="selectPower('BLOCK')">☄️ ASTEROID</button>
+            </div>
+
+            <div class="log" id="gameLog">
+                > System initialized...<br>
+                > Good luck, Commander.
+            </div>
+
+            <button class="btn btn-help" onclick="openModal()">[?] TACTICAL BRIEFING</button>
+            <button class="btn btn-reset" onclick="resetGame()">REBOOT SYSTEM</button>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <h2>TACTICAL BRIEFING</h2>
+            <p><strong>MISSION:</strong> Align 4 Starships (🚀) horizontally, vertically, or diagonally to secure the sector.</p>
+            <hr style="border: 0; border-top: 1px solid #1b263b; margin: 15px 0;">
+            <p><strong>ARSENAL (One-time use):</strong></p>
+            <ul>
+                <li>💥 <strong>ORBITAL STRIKE:</strong> Destroys any unit. The blast zone creates radiation (unplayable) for 1 turn.</li>
+                <li>👽 <strong>MIND CONTROL:</strong> Hacks an enemy Asteroid (☄️) and converts it into your Ship.</li>
+                <li>☄️ <strong>ASTEROID:</strong> Drops a permanent blockade that no fleet can traverse.</li>
+            </ul>
+            <button class="close-btn" onclick="closeModal()">AFFIRMATIVE</button>
+        </div>
+    </div>
+
+<script>
+    // ASSETS
+    const SYMBOLS = {
+        'P1': '🚀', // Player
+        'CPU': '🛸', // AI
+        'BLOCK': '☄️' // Wall
+    };
+
+    // GAME STATE
+    let board = Array(16).fill(null);
+    let hazmat = {}; // {index: turns}
+    let currentPlayer = 'P1';
+    let gameActive = true;
+    let selectedPower = null;
+    let powers = {
+        'P1': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true },
+        'CPU': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true }
+    };
+
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('gameLog');
+
+    // INITIALIZE
+    function init() {
+        boardEl.innerHTML = '';
+        for (let i = 0; i < 16; i++) {
+            let cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            cell.onclick = () => handleCellClick(i);
+            boardEl.appendChild(cell);
+        }
+        updateUI();
+    }
+
+    // LOGIC
+    function log(msg) {
+        logEl.innerHTML = `> ${msg}<br>` + logEl.innerHTML;
+    }
+
+    function openModal() { document.getElementById('helpModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('helpModal').style.display = 'none'; }
+
+    function selectPower(power) {
+        if (!gameActive || currentPlayer !== 'P1') return;
+        
+        if (!powers['P1'][power]) {
+            log("⚠️ Weapon depleted!");
+            return;
+        }
+
+        if (selectedPower === power) {
+            selectedPower = null; 
+            log("Targeting cancelled.");
+        } else {
+            selectedPower = power;
+            log(`🎯 Select coordinates for ${power}...`);
+        }
+        updateUI();
+    }
+
+    function handleCellClick(index) {
+        if (!gameActive || currentPlayer !== 'P1') return;
+
+        // POWER MOVE
+        if (selectedPower) {
+            executePower('P1', selectedPower, index);
+            return;
+        }
+
+        // STANDARD MOVE
+        if (isValidMove(index, 'P1')) {
+            makeMove(index, 'P1');
+            if (gameActive) {
+                // Trigger AI
+                setTimeout(aiTurn, 800);
+            }
+        } else {
+            log("❌ Invalid Coordinates! Sector occupied or radiated.");
+        }
+    }
+
+    function executePower(player, power, index) {
+        let success = false;
+        let pName = player === 'P1' ? "Commander" : "Alien Fleet";
+
+        if (power === 'BOMB') {
+            board[index] = null;
+            hazmat[index] = { owner: player, turns: 3 }; 
+            log(`💥 ${pName} ordered ORBITAL STRIKE on Sec-${index+1}!`);
+            success = true;
+        } 
+        else if (power === 'OVERRIDE') {
+            if (board[index] === SYMBOLS.BLOCK) {
+                board[index] = SYMBOLS[player];
+                log(`👽 ${pName} HACKED the asteroid at Sec-${index+1}!`);
+                success = true;
+            } else {
+                if(player === 'P1') log("❌ Mind Control only works on Asteroids (☄️)");
+            }
+        }
+        else if (power === 'BLOCK') {
+            if (isValidMove(index, player)) {
+                board[index] = SYMBOLS.BLOCK;
+                log(`☄️ ${pName} dropped an ASTEROID on Sec-${index+1}!`);
+                success = true;
+            } else {
+                if(player === 'P1') log("❌ Coordinates invalid.");
+            }
+        }
+
+        if (success) {
+            powers[player][power] = false;
+            selectedPower = null;
+            
+            if(checkWin(player)) return;
+            
+            if (gameActive) {
+                switchTurns();
+                if (currentPlayer === 'CPU') setTimeout(aiTurn, 800);
+            }
+        }
+        updateUI();
+    }
+
+    function isValidMove(index, player) {
+        if (index < 0 || index > 15) return false;
+        if (hazmat[index]) {
+            if (hazmat[index].owner !== player) return false;
+        }
+        return board[index] === null;
+    }
+
+    function makeMove(index, player) {
+        board[index] = SYMBOLS[player];
+        if (hazmat[index]) delete hazmat[index];
+        updateUI();
+
+        setTimeout(() => {
+            if (checkWin(player)) return;
+            if (!board.includes(null)) {
+                endGame("Stalemate Detected");
+                return;
+            }
+            if(gameActive) switchTurns();
+        }, 50);
+    }
+
+    function switchTurns() {
+        currentPlayer = currentPlayer === 'P1' ? 'CPU' : 'P1';
+        for (let k in hazmat) {
+            hazmat[k].turns--;
+            if (hazmat[k].turns <= 0) delete hazmat[k];
+        }
+        updateUI();
+    }
+
+    // AI LOGIC
+    function aiTurn() {
+        if (!gameActive) return;
+        statusEl.innerText = "INCOMING TRANSMISSION...";
+        statusEl.style.color = "#ff0055";
+
+        let winMove = findWinningMove('CPU');
+        if (winMove !== -1) { makeMove(winMove, 'CPU'); return; }
+
+        let blockMove = findWinningMove('P1');
+        if (blockMove !== -1) {
+            if (powers['CPU']['BOMB'] && Math.random() < 0.3) {
+                executePower('CPU', 'BOMB', blockMove);
+                return;
+            }
+            makeMove(blockMove, 'CPU');
+            return;
+        }
+
+        if (Math.random() < 0.2 && powers['CPU']['BLOCK']) {
+            let empties = getEmptyIndices();
+            if(empties.length > 0) {
+                executePower('CPU', 'BLOCK', empties[Math.floor(Math.random() * empties.length)]);
+                return;
+            }
+        }
+
+        let empties = getEmptyIndices();
+        if(empties.length > 0) {
+            let move = empties[Math.floor(Math.random() * empties.length)];
+            makeMove(move, 'CPU');
+        }
+    }
+
+    function findWinningMove(playerKey) {
+        let empties = getEmptyIndices();
+        let sym = SYMBOLS[playerKey];
+        for (let i of empties) {
+            board[i] = sym;
+            if (checkWinCondition(sym)) {
+                board[i] = null; return i;
+            }
+            board[i] = null;
+        }
+        return -1;
+    }
+
+    function getEmptyIndices() {
+        let indices = [];
+        for(let i=0; i<16; i++) {
+            if (isValidMove(i, 'CPU')) indices.push(i);
+        }
+        return indices;
+    }
+
+    function checkWin(playerKey) {
+        if (checkWinCondition(SYMBOLS[playerKey])) {
+            let winner = playerKey === 'P1' ? "COMMANDER" : "ALIEN FLEET";
+            endGame(`${winner} WINS!`);
+            return true;
+        }
+        return false;
+    }
+
+    function checkWinCondition(s) {
+        const wins = [
+            [0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15], // Rows
+            [0,4,8,12], [1,5,9,13], [2,6,10,14], [3,7,11,15], // Cols
+            [0,5,10,15], [3,6,9,12] // Diags
+        ];
+        return wins.some(combo => combo.every(i => board[i] === s));
+    }
+
+    function endGame(msg) {
+        gameActive = false;
+        statusEl.innerText = msg;
+        statusEl.style.color = msg.includes("COMMANDER") ? "#00f5d4" : "#ff0055";
+        log(`🏁 MISSION END: ${msg}`);
+    }
+
+    function resetGame() {
+        board = Array(16).fill(null);
+        hazmat = {};
+        currentPlayer = 'P1';
+        gameActive = true;
+        selectedPower = null;
+        powers = {
+            'P1': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true },
+            'CPU': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true }
+        };
+        logEl.innerHTML = "> System Rebooted.<br>";
+        statusEl.style.color = "inherit";
+        init();
+    }
+
+    function updateUI() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach((cell, i) => {
+            cell.className = 'cell'; 
+            if (board[i] === SYMBOLS.P1) cell.classList.add('p1');
+            if (board[i] === SYMBOLS.CPU) cell.classList.add('cpu');
+            if (board[i] === SYMBOLS.BLOCK) cell.classList.add('block');
+            if (hazmat[i]) cell.classList.add('hazmat');
+            
+            cell.innerText = board[i] || '';
+        });
+
+        if (gameActive) {
+            statusEl.innerText = currentPlayer === 'P1' ? "AWAITING COMMANDS..." : "INCOMING TRANSMISSION...";
+            statusEl.style.color = currentPlayer === 'P1' ? "#00f5d4" : "#ff0055";
+        }
+        
+        // Update Buttons
+        const bombBtn = document.getElementById('btn-bomb');
+        const overrideBtn = document.getElementById('btn-override');
+        const blockBtn = document.getElementById('btn-block');
+
+        if(bombBtn) bombBtn.disabled = !powers['P1']['BOMB'];
+        if(overrideBtn) overrideBtn.disabled = !powers['P1']['OVERRIDE'];
+        if(blockBtn) blockBtn.disabled = !powers['P1']['BLOCK'];
+
+        if(bombBtn) bombBtn.classList.toggle('active', selectedPower === 'BOMB');
+        if(overrideBtn) overrideBtn.classList.toggle('active', selectedPower === 'OVERRIDE');
+        if(blockBtn) blockBtn.classList.toggle('active', selectedPower === 'BLOCK');
+    }
+
+    // START
+    init();
+
+</script>
+</body>
+</html>
