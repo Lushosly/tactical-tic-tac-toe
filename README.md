@@ -8,7 +8,9 @@ A strategic space combat game featuring tactical power-ups and self-learning ali
 
 - **Web Mission**: A JavaScript port for instant play in the browser.
 
-Play Instantly! <a href="https://lushosly.github.io/tactical-tic-tac-toe/" target="_blank" rel="noopener noreferrer">**Click Here to Launch Mission**</a>
+Play Instantly! **[Click Here to Launch Mission](https://lushosly.github.io/tactical-tic-tac-toe/)**
+
+**_Tip: Cmd ⌘ + Click (macOS) or Ctrl + Click (Windows/Linux) to open in a new tab._**
                    
 ## **The "Alien" CPU** 
 
