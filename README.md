@@ -23,7 +23,7 @@ The Python source code (game.py) implements a reinforcement learning loop:
                    
 --- **Exploitation**: In future battles, the AI recognizes patterns and deploys the statistically best counter-attack. ---
 
-=================================== **Power Card** =================================
+========================== **Power Card** =================================
 
 Commanders have a hand of 3 one-time-use weapons to disrupt the sector:
 
