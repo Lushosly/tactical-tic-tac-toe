@@ -1,4 +1,4 @@
-=========================== **Galactic Conquest (AI & Web Edition)** ===========================
+=================== **Galactic Conquest (AI & Web Edition)** ===========================
 
   A strategic space combat game featuring tactical power-ups and self-learning alien AI.
 
@@ -10,7 +10,7 @@ Implementation:
 
 Play Instantly! **Click Here to Launch Mission** 
                    
-=================================== **The "Alien" CPU** =================================
+======================== **The "Alien" CPU** =================================
 
 The Python source code (game.py) implements a reinforcement learning loop:
 
