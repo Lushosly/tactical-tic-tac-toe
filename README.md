@@ -4,9 +4,9 @@
 
 Implementation:
 
---- Python Engine: The core logic demostrating OOP, State Management , and Q-Learning logic. ---
+--- **Python Engine**: The core logic demostrating OOP, State Management , and Q-Learning logic. ---
 
---- Web Mission: A JavaScript port for instant play in the browser. ---
+--- **Web Mission**: A JavaScript port for instant play in the browser. ---
 
 Play Instantly! **Click Here to Launch Mission** 
                    
