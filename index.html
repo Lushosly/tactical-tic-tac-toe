@@ -10,9 +10,9 @@
             --bg: #050b14;
             --grid: #0d1b2a;
             --text: #e0e1dd;
-            --player: #00f5d4;
-            --cpu: #ff0055;  
-            --asteroid: #9d4edd; 
+            --player: #00f5d4; /* Neon Cyan */
+            --cpu: #ff0055;    /* Neon Red */
+            --asteroid: #9d4edd; /* Purple */
             --warn: #fee440;
         }
         
@@ -35,6 +35,26 @@
             padding: 20px;
         }
 
+        /* LANGUAGE TOGGLE */
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .lang-btn {
+            background: rgba(13, 27, 42, 0.8);
+            border: 1px solid var(--player);
+            color: var(--text);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+        .lang-btn.active { background: var(--player); color: #000; }
+
         h1 { 
             color: var(--player); 
             margin-bottom: 5px; 
@@ -42,8 +62,9 @@
             text-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
             letter-spacing: 2px;
             text-align: center;
+            margin-top: 40px;
         }
-        p { margin-bottom: 25px; font-size: 0.9rem; color: #8892b0; letter-spacing: 1px; }
+        p { margin-bottom: 25px; font-size: 0.9rem; color: #8892b0; letter-spacing: 1px; text-align: center; }
 
         .game-container {
             display: flex;
@@ -143,7 +164,6 @@
         }
         .btn:active { transform: scale(0.98); }
         
-        /* Power Button Colors */
         .btn-bomb { background: linear-gradient(45deg, #ff0055, #a4133c); color: #fff; }
         .btn-override { background: linear-gradient(45deg, #7209b7, #3a0ca3); color: #fff; }
         .btn-block { background: linear-gradient(45deg, #4361ee, #3f37c9); color: #fff; }
@@ -224,8 +244,13 @@
 </head>
 <body>
 
-    <h1>GALACTIC CONQUEST</h1>
-    <p>Secure Sector 4 • Align 4 Ships to Win</p>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('es')">ES</button>
+    </div>
+
+    <h1 id="title">GALACTIC CONQUEST</h1>
+    <p id="subtitle">Secure Sector 4 • Align 4 Ships to Win</p>
 
     <div class="game-container">
         <div class="board" id="board">
@@ -246,38 +271,136 @@
                 > Good luck, Commander.
             </div>
 
-            <button class="btn btn-help" onclick="openModal()">[?] TACTICAL BRIEFING</button>
-            <button class="btn btn-reset" onclick="resetGame()">REBOOT SYSTEM</button>
+            <button class="btn btn-help" id="btn-help" onclick="openModal()">[?] TACTICAL BRIEFING</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetGame()">REBOOT SYSTEM</button>
         </div>
     </div>
 
     <!-- HELP MODAL -->
     <div id="helpModal" class="modal">
         <div class="modal-content">
-            <h2>TACTICAL BRIEFING</h2>
-            <p><strong>MISSION:</strong> Align 4 Starships (🚀) horizontally, vertically, or diagonally to secure the sector.</p>
+            <h2 id="modal-title">TACTICAL BRIEFING</h2>
+            <p id="modal-obj"><strong>MISSION:</strong> Align 4 Starships (🚀) horizontally, vertically, or diagonally to secure the sector.</p>
             <hr style="border: 0; border-top: 1px solid #1b263b; margin: 15px 0;">
-            <p><strong>ARSENAL (One-time use):</strong></p>
+            <p><strong id="modal-arsenal">ARSENAL (One-time use):</strong></p>
             <ul>
-                <li>💥 <strong>ORBITAL STRIKE:</strong> Destroys any unit. The blast zone creates radiation (unplayable) for 1 turn.</li>
-                <li>👽 <strong>MIND CONTROL:</strong> Hacks an enemy Asteroid (☄️) and converts it into your Ship.</li>
-                <li>☄️ <strong>ASTEROID:</strong> Drops a permanent blockade that no fleet can traverse.</li>
+                <li id="desc-bomb">💥 <strong>ORBITAL STRIKE:</strong> Destroys any unit. The blast zone creates radiation (unplayable) for 1 turn.</li>
+                <li id="desc-hack">👽 <strong>MIND CONTROL:</strong> Hacks an enemy Asteroid (☄️) and converts it into your fleet.</li>
+                <li id="desc-asteroid">☄️ <strong>ASTEROID:</strong> Deploys a permanent blockade that no fleet can traverse.</li>
             </ul>
-            <button class="close-btn" onclick="closeModal()">AFFIRMATIVE</button>
+            <button class="close-btn" id="btn-close" onclick="closeModal()">AFFIRMATIVE</button>
         </div>
     </div>
 
 <script>
-    // ASSETS
-    const SYMBOLS = {
-        'P1': '🚀', // Player
-        'CPU': '🛸', // AI
-        'BLOCK': '☄️' // Wall
+    // --- LOCALIZATION (I18N) ---
+    const I18N = {
+        'en': {
+            title: "GALACTIC CONQUEST",
+            subtitle: "Secure Sector 4 • Align 4 Ships to Win",
+            statusWait: "AWAITING COMMANDS...",
+            statusIncoming: "INCOMING TRANSMISSION...",
+            statusWin: " WINS!",
+            statusDraw: "STALEMATE DETECTED",
+            p1Name: "COMMANDER",
+            cpuName: "ALIEN FLEET",
+            btnBomb: "💥 ORBITAL STRIKE",
+            btnHack: "👽 MIND CONTROL",
+            btnBlock: "☄️ ASTEROID",
+            btnHelp: "[?] TACTICAL BRIEFING",
+            btnReset: "REBOOT SYSTEM",
+            logInit: "> System initialized...",
+            logLuck: "> Good luck, Commander.",
+            logWeaponDepleted: "⚠️ Weapon depleted!",
+            logCancel: "Targeting cancelled.",
+            logTarget: "🎯 Select coordinates for",
+            logInvalid: "❌ Invalid Coordinates! Sector occupied or radiated.",
+            logStrike: "ordered ORBITAL STRIKE on Sec-",
+            logHack: "HACKED the asteroid at Sec-",
+            logHackFail: "❌ Mind Control only works on Asteroids (☄️)",
+            logBlock: "dropped an ASTEROID on Sec-",
+            logEndWin: "MISSION END: WINS!",
+            logEndDraw: "MISSION END: STALEMATE",
+            // Modal
+            modalTitle: "TACTICAL BRIEFING",
+            modalObj: "<strong>MISSION:</strong> Align 4 Starships (🚀) horizontally, vertically, or diagonally.",
+            modalArsenal: "ARSENAL (One-time use):",
+            descBomb: "💥 <strong>ORBITAL STRIKE:</strong> Destroys any unit. Creates Radiation (unplayable) for 1 turn.",
+            descHack: "👽 <strong>MIND CONTROL:</strong> Hacks an enemy Asteroid (☄️) and converts it to your fleet.",
+            descAsteroid: "☄️ <strong>ASTEROID:</strong> Deploys a permanent blockade (#).",
+            btnClose: "AFFIRMATIVE"
+        },
+        'es': {
+            title: "CONQUISTA GALÁCTICA",
+            subtitle: "Asegura el Sector 4 • Alinea 4 Naves para Ganar",
+            statusWait: "ESPERANDO ORDENES...",
+            statusIncoming: "TRANSMISIÓN ENTRANTE...",
+            statusWin: " ¡VICTORIA!",
+            statusDraw: "EMPATE DETECTADO",
+            p1Name: "COMANDANTE",
+            cpuName: "FLOTA ALIENÍGENA",
+            btnBomb: "💥 ATAQUE ORBITAL",
+            btnHack: "👽 CONTROL MENTAL",
+            btnBlock: "☄️ ASTEROIDE",
+            btnHelp: "[?] INFORME TÁCTICO",
+            btnReset: "REINICIAR SISTEMA",
+            logInit: "> Sistema inicializado...",
+            logLuck: "> Buena suerte, Comandante.",
+            logWeaponDepleted: "⚠️ ¡Arma agotada!",
+            logCancel: "Objetivo cancelado.",
+            logTarget: "🎯 Seleccione coordenadas para",
+            logInvalid: "❌ ¡Coordenadas Inválidas! Sector ocupado o radiado.",
+            logStrike: "ordenó ATAQUE ORBITAL en Sec-",
+            logHack: "HACKEÓ el asteroide en Sec-",
+            logHackFail: "❌ Control Mental solo funciona en Asteroides (☄️)",
+            logBlock: "lanzó un ASTEROIDE en Sec-",
+            logEndWin: "FIN DE MISIÓN: ¡VICTORIA!",
+            logEndDraw: "FIN DE MISIÓN: EMPATE",
+            // Modal
+            modalTitle: "INFORME TÁCTICO",
+            modalObj: "<strong>MISIÓN:</strong> Alinea 4 Naves (🚀) horizontal, vertical o diagonalmente.",
+            modalArsenal: "ARSENAL (Un solo uso):",
+            descBomb: "💥 <strong>ATAQUE ORBITAL:</strong> Destruye cualquier unidad. Crea Radiación (bloqueo) por 1 turno.",
+            descHack: "👽 <strong>CONTROL MENTAL:</strong> Hackea un Asteroide (☄️) enemigo y lo convierte a tu flota.",
+            descAsteroid: "☄️ <strong>ASTEROIDE:</strong> Despliega un bloqueo permanente (#).",
+            btnClose: "AFIRMATIVO"
+        }
     };
 
+    let curLang = 'en';
+
+    function setLang(lang) {
+        curLang = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Update UI Text
+        const t = I18N[lang];
+        document.getElementById('title').innerText = t.title;
+        document.getElementById('subtitle').innerText = t.subtitle;
+        document.getElementById('btn-bomb').innerText = t.btnBomb;
+        document.getElementById('btn-override').innerText = t.btnHack;
+        document.getElementById('btn-block').innerText = t.btnBlock;
+        document.getElementById('btn-help').innerText = t.btnHelp;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        
+        // Modal
+        document.getElementById('modal-title').innerText = t.modalTitle;
+        document.getElementById('modal-obj').innerHTML = t.modalObj;
+        document.getElementById('modal-arsenal').innerText = t.modalArsenal;
+        document.getElementById('desc-bomb').innerHTML = t.descBomb;
+        document.getElementById('desc-hack').innerHTML = t.descHack;
+        document.getElementById('desc-asteroid').innerHTML = t.descAsteroid;
+        document.getElementById('btn-close').innerText = t.btnClose;
+
+        // Reset game to apply language to status/logs cleanly
+        resetGame();
+    }
+
     // GAME STATE
+    const SYMBOLS = { 'P1': '🚀', 'CPU': '🛸', 'BLOCK': '☄️' };
     let board = Array(16).fill(null);
-    let hazmat = {}; // {index: turns}
+    let hazmat = {}; 
     let currentPlayer = 'P1';
     let gameActive = true;
     let selectedPower = null;
@@ -290,7 +413,6 @@
     const statusEl = document.getElementById('status');
     const logEl = document.getElementById('gameLog');
 
-    // INITIALIZE
     function init() {
         boardEl.innerHTML = '';
         for (let i = 0; i < 16; i++) {
@@ -303,7 +425,6 @@
         updateUI();
     }
 
-    // LOGIC
     function log(msg) {
         logEl.innerHTML = `> ${msg}<br>` + logEl.innerHTML;
     }
@@ -313,78 +434,78 @@
 
     function selectPower(power) {
         if (!gameActive || currentPlayer !== 'P1') return;
+        const t = I18N[curLang];
         
         if (!powers['P1'][power]) {
-            log("⚠️ Weapon depleted!");
+            log(t.logWeaponDepleted);
             return;
         }
 
         if (selectedPower === power) {
             selectedPower = null; 
-            log("Targeting cancelled.");
+            log(t.logCancel);
         } else {
             selectedPower = power;
-            log(`🎯 Select coordinates for ${power}...`);
+            // Get Display Name for power
+            let pName = (power === 'BOMB') ? t.btnBomb : (power === 'OVERRIDE') ? t.btnHack : t.btnBlock;
+            log(`${t.logTarget} ${pName}...`);
         }
         updateUI();
     }
 
     function handleCellClick(index) {
         if (!gameActive || currentPlayer !== 'P1') return;
+        const t = I18N[curLang];
 
-        // POWER MOVE
         if (selectedPower) {
             executePower('P1', selectedPower, index);
             return;
         }
 
-        // STANDARD MOVE
         if (isValidMove(index, 'P1')) {
             makeMove(index, 'P1');
             if (gameActive) {
-                // Trigger AI
                 setTimeout(aiTurn, 800);
             }
         } else {
-            log("❌ Invalid Coordinates! Sector occupied or radiated.");
+            log(t.logInvalid);
         }
     }
 
     function executePower(player, power, index) {
         let success = false;
-        let pName = player === 'P1' ? "Commander" : "Alien Fleet";
+        const t = I18N[curLang];
+        let pName = player === 'P1' ? t.p1Name : t.cpuName;
 
         if (power === 'BOMB') {
             board[index] = null;
             hazmat[index] = { owner: player, turns: 3 }; 
-            log(`💥 ${pName} ordered ORBITAL STRIKE on Sec-${index+1}!`);
+            log(`💥 ${pName} ${t.logStrike}${index+1}!`);
             success = true;
         } 
         else if (power === 'OVERRIDE') {
             if (board[index] === SYMBOLS.BLOCK) {
                 board[index] = SYMBOLS[player];
-                log(`👽 ${pName} HACKED the asteroid at Sec-${index+1}!`);
+                log(`👽 ${pName} ${t.logHack}${index+1}!`);
                 success = true;
             } else {
-                if(player === 'P1') log("❌ Mind Control only works on Asteroids (☄️)");
+                if(player === 'P1') log(t.logHackFail);
             }
         }
         else if (power === 'BLOCK') {
             if (isValidMove(index, player)) {
                 board[index] = SYMBOLS.BLOCK;
-                log(`☄️ ${pName} dropped an ASTEROID on Sec-${index+1}!`);
+                log(`☄️ ${pName} ${t.logBlock}${index+1}!`);
                 success = true;
             } else {
-                if(player === 'P1') log("❌ Coordinates invalid.");
+                if(player === 'P1') log(t.logInvalid);
             }
         }
 
         if (success) {
             powers[player][power] = false;
             selectedPower = null;
-            
             if(checkWin(player)) return;
-            
             if (gameActive) {
                 switchTurns();
                 if (currentPlayer === 'CPU') setTimeout(aiTurn, 800);
@@ -409,7 +530,7 @@
         setTimeout(() => {
             if (checkWin(player)) return;
             if (!board.includes(null)) {
-                endGame("Stalemate Detected");
+                endGame(I18N[curLang].statusDraw);
                 return;
             }
             if(gameActive) switchTurns();
@@ -425,10 +546,10 @@
         updateUI();
     }
 
-    // AI LOGIC
     function aiTurn() {
         if (!gameActive) return;
-        statusEl.innerText = "INCOMING TRANSMISSION...";
+        const t = I18N[curLang];
+        statusEl.innerText = t.statusIncoming;
         statusEl.style.color = "#ff0055";
 
         let winMove = findWinningMove('CPU');
@@ -482,8 +603,9 @@
 
     function checkWin(playerKey) {
         if (checkWinCondition(SYMBOLS[playerKey])) {
-            let winner = playerKey === 'P1' ? "COMMANDER" : "ALIEN FLEET";
-            endGame(`${winner} WINS!`);
+            const t = I18N[curLang];
+            let winnerName = playerKey === 'P1' ? t.p1Name : t.cpuName;
+            endGame(`${winnerName} ${t.statusWin}`);
             return true;
         }
         return false;
@@ -491,9 +613,9 @@
 
     function checkWinCondition(s) {
         const wins = [
-            [0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15], // Rows
-            [0,4,8,12], [1,5,9,13], [2,6,10,14], [3,7,11,15], // Cols
-            [0,5,10,15], [3,6,9,12] // Diags
+            [0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15], 
+            [0,4,8,12], [1,5,9,13], [2,6,10,14], [3,7,11,15], 
+            [0,5,10,15], [3,6,9,12] 
         ];
         return wins.some(combo => combo.every(i => board[i] === s));
     }
@@ -501,11 +623,12 @@
     function endGame(msg) {
         gameActive = false;
         statusEl.innerText = msg;
-        statusEl.style.color = msg.includes("COMMANDER") ? "#00f5d4" : "#ff0055";
-        log(`🏁 MISSION END: ${msg}`);
+        statusEl.style.color = msg.includes(I18N[curLang].p1Name) ? "#00f5d4" : "#ff0055";
+        log(`🏁 ${msg}`);
     }
 
     function resetGame() {
+        const t = I18N[curLang];
         board = Array(16).fill(null);
         hazmat = {};
         currentPlayer = 'P1';
@@ -515,12 +638,13 @@
             'P1': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true },
             'CPU': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true }
         };
-        logEl.innerHTML = "> System Rebooted.<br>";
+        logEl.innerHTML = `${t.logInit}<br>${t.logLuck}`;
         statusEl.style.color = "inherit";
         init();
     }
 
     function updateUI() {
+        const t = I18N[curLang];
         const cells = document.querySelectorAll('.cell');
         cells.forEach((cell, i) => {
             cell.className = 'cell'; 
@@ -528,27 +652,33 @@
             if (board[i] === SYMBOLS.CPU) cell.classList.add('cpu');
             if (board[i] === SYMBOLS.BLOCK) cell.classList.add('block');
             if (hazmat[i]) cell.classList.add('hazmat');
-            
             cell.innerText = board[i] || '';
         });
 
         if (gameActive) {
-            statusEl.innerText = currentPlayer === 'P1' ? "AWAITING COMMANDS..." : "INCOMING TRANSMISSION...";
+            statusEl.innerText = currentPlayer === 'P1' ? t.statusWait : t.statusIncoming;
             statusEl.style.color = currentPlayer === 'P1' ? "#00f5d4" : "#ff0055";
         }
         
-        // Update Buttons
         const bombBtn = document.getElementById('btn-bomb');
         const overrideBtn = document.getElementById('btn-override');
         const blockBtn = document.getElementById('btn-block');
 
-        if(bombBtn) bombBtn.disabled = !powers['P1']['BOMB'];
-        if(overrideBtn) overrideBtn.disabled = !powers['P1']['OVERRIDE'];
-        if(blockBtn) blockBtn.disabled = !powers['P1']['BLOCK'];
-
-        if(bombBtn) bombBtn.classList.toggle('active', selectedPower === 'BOMB');
-        if(overrideBtn) overrideBtn.classList.toggle('active', selectedPower === 'OVERRIDE');
-        if(blockBtn) blockBtn.classList.toggle('active', selectedPower === 'BLOCK');
+        if(bombBtn) {
+            bombBtn.disabled = !powers['P1']['BOMB'];
+            bombBtn.innerText = t.btnBomb;
+            bombBtn.classList.toggle('active', selectedPower === 'BOMB');
+        }
+        if(overrideBtn) {
+            overrideBtn.disabled = !powers['P1']['OVERRIDE'];
+            overrideBtn.innerText = t.btnHack;
+            overrideBtn.classList.toggle('active', selectedPower === 'OVERRIDE');
+        }
+        if(blockBtn) {
+            blockBtn.disabled = !powers['P1']['BLOCK'];
+            blockBtn.innerText = t.btnBlock;
+            blockBtn.classList.toggle('active', selectedPower === 'BLOCK');
+        }
     }
 
     // START
