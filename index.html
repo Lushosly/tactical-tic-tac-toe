@@ -10,9 +10,9 @@
             --bg: #050b14;
             --grid: #0d1b2a;
             --text: #e0e1dd;
-            --player: #00f5d4; /* Neon Cyan */
-            --cpu: #ff0055;    /* Neon Red */
-            --asteroid: #9d4edd; /* Purple */
+            --player: #00f5d4;
+            --cpu: #ff0055;
+            --asteroid: #9d4edd;
             --warn: #fee440;
         }
         
@@ -235,6 +235,15 @@
             font-family: 'Orbitron', sans-serif;
             text-transform: uppercase;
         }
+        
+        .brain-status {
+            margin-top: 5px;
+            font-size: 0.65rem;
+            color: #8892b0;
+            text-align: right;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
 
         @media (max-width: 600px) {
             .board { grid-template-columns: repeat(4, 60px); grid-template-rows: repeat(4, 60px); }
@@ -266,9 +275,12 @@
                 <button class="btn btn-block" id="btn-block" onclick="selectPower('BLOCK')">☄️ ASTEROID</button>
             </div>
 
-            <div class="log" id="gameLog">
-                > System initialized...<br>
-                > Good luck, Commander.
+            <div class="log">
+                <div id="gameLog">
+                    > System initialized...<br>
+                    > Good luck, Commander.
+                </div>
+                <div class="brain-status" id="ai-mem-status">AI MEMORY: 0 PATTERNS</div>
             </div>
 
             <button class="btn btn-help" id="btn-help" onclick="openModal()">[?] TACTICAL BRIEFING</button>
@@ -321,7 +333,8 @@
             logBlock: "dropped an ASTEROID on Sec-",
             logEndWin: "MISSION END: WINS!",
             logEndDraw: "MISSION END: STALEMATE",
-            // Modal
+            logAIThink: "analyzing outcomes...",
+            logAIMemory: "THE ALIEN RECALLED PATTERN!",
             modalTitle: "TACTICAL BRIEFING",
             modalObj: "<strong>MISSION:</strong> Align 4 Starships (🚀) horizontally, vertically, or diagonally.",
             modalArsenal: "ARSENAL (One-time use):",
@@ -356,7 +369,8 @@
             logBlock: "lanzó un ASTEROIDE en Sec-",
             logEndWin: "FIN DE MISIÓN: ¡VICTORIA!",
             logEndDraw: "FIN DE MISIÓN: EMPATE",
-            // Modal
+            logAIThink: "analizando resultados...",
+            logAIMemory: "¡EL ALIEN RECONOCIÓ PATRÓN!",
             modalTitle: "INFORME TÁCTICO",
             modalObj: "<strong>MISIÓN:</strong> Alinea 4 Naves (🚀) horizontal, vertical o diagonalmente.",
             modalArsenal: "ARSENAL (Un solo uso):",
@@ -374,7 +388,6 @@
         document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
 
-        // Update UI Text
         const t = I18N[lang];
         document.getElementById('title').innerText = t.title;
         document.getElementById('subtitle').innerText = t.subtitle;
@@ -384,7 +397,6 @@
         document.getElementById('btn-help').innerText = t.btnHelp;
         document.getElementById('btn-reset').innerText = t.btnReset;
         
-        // Modal
         document.getElementById('modal-title').innerText = t.modalTitle;
         document.getElementById('modal-obj').innerHTML = t.modalObj;
         document.getElementById('modal-arsenal').innerText = t.modalArsenal;
@@ -393,11 +405,10 @@
         document.getElementById('desc-asteroid').innerHTML = t.descAsteroid;
         document.getElementById('btn-close').innerText = t.btnClose;
 
-        // Reset game to apply language to status/logs cleanly
         resetGame();
     }
 
-    // GAME STATE
+    // === GAME STATE & AI BRAIN ===
     const SYMBOLS = { 'P1': '🚀', 'CPU': '🛸', 'BLOCK': '☄️' };
     let board = Array(16).fill(null);
     let hazmat = {}; 
@@ -408,6 +419,10 @@
         'P1': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true },
         'CPU': { 'BOMB': true, 'OVERRIDE': true, 'BLOCK': true }
     };
+    
+    // Q-LEARNING MEMORY
+    let aiMemory = JSON.parse(localStorage.getItem('galactic_brain')) || {};
+    let matchHistory = []; // Stores {state, move} pairs for current game
 
     const boardEl = document.getElementById('board');
     const statusEl = document.getElementById('status');
@@ -423,10 +438,15 @@
             boardEl.appendChild(cell);
         }
         updateUI();
+        updateMemoryStatus();
     }
 
     function log(msg) {
         logEl.innerHTML = `> ${msg}<br>` + logEl.innerHTML;
+    }
+
+    function updateMemoryStatus() {
+        document.getElementById('ai-mem-status').innerText = `AI MEMORY: ${Object.keys(aiMemory).length} PATTERNS`;
     }
 
     function openModal() { document.getElementById('helpModal').style.display = 'flex'; }
@@ -446,7 +466,6 @@
             log(t.logCancel);
         } else {
             selectedPower = power;
-            // Get Display Name for power
             let pName = (power === 'BOMB') ? t.btnBomb : (power === 'OVERRIDE') ? t.btnHack : t.btnBlock;
             log(`${t.logTarget} ${pName}...`);
         }
@@ -505,6 +524,12 @@
         if (success) {
             powers[player][power] = false;
             selectedPower = null;
+            
+            // Record Move for AI Learning
+            if (player === 'CPU') {
+                recordAiMove(getBoardState(), `${power}:${index}`);
+            }
+
             if(checkWin(player)) return;
             if (gameActive) {
                 switchTurns();
@@ -523,6 +548,11 @@
     }
 
     function makeMove(index, player) {
+        // Record Move for AI Learning
+        if (player === 'CPU') {
+            recordAiMove(getBoardState(), index);
+        }
+
         board[index] = SYMBOLS[player];
         if (hazmat[index]) delete hazmat[index];
         updateUI();
@@ -530,7 +560,7 @@
         setTimeout(() => {
             if (checkWin(player)) return;
             if (!board.includes(null)) {
-                endGame(I18N[curLang].statusDraw);
+                endGame(I18N[curLang].statusDraw, 'DRAW');
                 return;
             }
             if(gameActive) switchTurns();
@@ -546,12 +576,80 @@
         updateUI();
     }
 
+    // === AI BRAIN (Q-Learning) ===
+    function getBoardState() {
+        return board.join(''); // Simple string key
+    }
+
+    function recordAiMove(state, move) {
+        matchHistory.push({ state, move });
+    }
+
+    function learnFromMatch(result) {
+        let reward = 0;
+        if (result === 'WIN') reward = 3;    // AI Won
+        if (result === 'LOSS') reward = -2;  // AI Lost
+        if (result === 'DRAW') reward = 1;   // Draw
+
+        matchHistory.forEach(entry => {
+            const { state, move } = entry;
+            if (!aiMemory[state]) aiMemory[state] = {};
+            if (!aiMemory[state][move]) aiMemory[state][move] = 0;
+            
+            // Update weight
+            aiMemory[state][move] += reward;
+        });
+
+        // Save to browser
+        localStorage.setItem('galactic_brain', JSON.stringify(aiMemory));
+        updateMemoryStatus();
+        matchHistory = []; // Reset
+    }
+
     function aiTurn() {
         if (!gameActive) return;
         const t = I18N[curLang];
         statusEl.innerText = t.statusIncoming;
         statusEl.style.color = "#ff0055";
 
+        const state = getBoardState();
+        
+        // 1. MEMORY CHECK (Exploit)
+        // 70% chance to use memory if available
+        if (Math.random() < 0.7 && aiMemory[state]) {
+            const moves = aiMemory[state];
+            // Find best move with positive score
+            let bestMove = null;
+            let maxScore = -999;
+            
+            for (let m in moves) {
+                if (moves[m] > maxScore) {
+                    maxScore = moves[m];
+                    bestMove = m;
+                }
+            }
+
+            if (bestMove && maxScore > 0) {
+                // Parse move type
+                log(t.logAIMemory);
+                if (bestMove.includes(':')) {
+                    const [pwr, idx] = bestMove.split(':');
+                    if (powers['CPU'][pwr]) {
+                        executePower('CPU', pwr, parseInt(idx));
+                        return;
+                    }
+                } else {
+                    const idx = parseInt(bestMove);
+                    if (isValidMove(idx, 'CPU')) {
+                        makeMove(idx, 'CPU');
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 2. HEURISTICS (Explore)
+        // If no memory or exploring, use standard logic
         let winMove = findWinningMove('CPU');
         if (winMove !== -1) { makeMove(winMove, 'CPU'); return; }
 
@@ -605,7 +703,10 @@
         if (checkWinCondition(SYMBOLS[playerKey])) {
             const t = I18N[curLang];
             let winnerName = playerKey === 'P1' ? t.p1Name : t.cpuName;
-            endGame(`${winnerName} ${t.statusWin}`);
+            
+            // Determine result for Learning
+            let result = playerKey === 'CPU' ? 'WIN' : 'LOSS';
+            endGame(`${winnerName} ${t.statusWin}`, result);
             return true;
         }
         return false;
@@ -620,11 +721,14 @@
         return wins.some(combo => combo.every(i => board[i] === s));
     }
 
-    function endGame(msg) {
+    function endGame(msg, result) {
         gameActive = false;
         statusEl.innerText = msg;
         statusEl.style.color = msg.includes(I18N[curLang].p1Name) ? "#00f5d4" : "#ff0055";
         log(`🏁 ${msg}`);
+        
+        // Trigger Learning
+        learnFromMatch(result);
     }
 
     function resetGame() {
@@ -640,6 +744,7 @@
         };
         logEl.innerHTML = `${t.logInit}<br>${t.logLuck}`;
         statusEl.style.color = "inherit";
+        matchHistory = []; // Reset history for new game
         init();
     }
 
